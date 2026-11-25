@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { Alert, Button, Card, Container, Form } from 'react-bootstrap'
 import { Link, useNavigate } from 'react-router-dom'
 import CampoFormulario from '../components/CampoFormulario'
-import { ADMIN_PRUEBA, validarCredenciales } from '../data/usuarios'
+import { ADMIN_PRUEBA, validarCredenciales } from '../data/usuarios' // [P3-1] BORRAR esta línea
+/* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
+import { iniciarSesion } from '../api/auth'
+import { mensajeDeError } from '../api/cliente'
+import { ADMIN_PRUEBA } from '../data/usuarios'
+FIN [P3-1] */
 import { validarClave, validarCorreo } from '../utils/validaciones'
 
 // Recibe por props el usuario con sesión activa (o null) y las funciones
@@ -14,6 +19,7 @@ function Login({ usuario, onIniciarSesion, onCerrarSesion }) {
   const [errorGeneral, setErrorGeneral] = useState('')
   const navegar = useNavigate()
 
+  // [P3-1] BORRAR desde aquí (versión con localStorage)
   function manejarEnvio(evento) {
     evento.preventDefault()
     setErrorGeneral('')
@@ -33,6 +39,28 @@ function Login({ usuario, onIniciarSesion, onCerrarSesion }) {
     onIniciarSesion(encontrado)
     navegar(encontrado.tipo === 'Administrador' ? '/admin' : '/')
   }
+  // [P3-1] BORRAR hasta aquí
+
+  /* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
+  async function manejarEnvio(evento) {
+    evento.preventDefault()
+    setErrorGeneral('')
+
+    // 1) Formato de los campos
+    const nuevosErrores = { correo: validarCorreo(correo), clave: validarClave(clave) }
+    setErrores(nuevosErrores)
+    if (nuevosErrores.correo || nuevosErrores.clave) return
+
+    // 2) MS-Usuarios revisa el correo y la contraseña y, si coinciden, entrega los tokens
+    try {
+      const respuesta = await iniciarSesion(correo, clave)
+      onIniciarSesion(respuesta)
+      navegar(respuesta.usuario.rol === 'ADMIN' ? '/admin' : '/')
+    } catch (error) {
+      setErrorGeneral(error.response?.status === 401 ? 'Correo o contraseña incorrectos.' : mensajeDeError(error))
+    }
+  }
+  FIN [P3-1] */
 
   // Rellena el formulario con el administrador de prueba (igual hay que pulsar Ingresar)
   function usarAdminDePrueba() {

@@ -23,6 +23,8 @@ export const ADMIN_PRUEBA = {
   clave: USUARIOS_INICIALES[0].clave,
 }
 
+export const TIPOS_USUARIO = ['Administrador', 'Anfitrión', 'Inquilino']
+
 function guardar(lista) {
   localStorage.setItem(CLAVE_USUARIOS, JSON.stringify(lista))
 }
@@ -51,7 +53,7 @@ export function registrarUsuario(datos) {
   const nuevo = {
     ...datos,
     correo: datos.correo.trim().toLowerCase(),
-    tipo: datos.tipo || 'Cliente',
+    tipo: datos.tipo || 'Inquilino',
     id: Math.max(0, ...lista.map((usuario) => usuario.id)) + 1,
   }
   guardar([...lista, nuevo])

@@ -1,0 +1,42 @@
+/* ---------------------------------------------------------------------------
+   Estilos del panel de administración. Se importan desde AdminLayout, así no
+   se mezclan con index.css. La grilla y los componentes los pone Bootstrap.
+   --------------------------------------------------------------------------- */
+
+.panel-admin {
+  min-height: 70vh;
+}
+
+/* ===== Menú lateral ===== */
+.menu-admin {
+  background-color: var(--azul);
+}
+
+.menu-admin .nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.menu-admin .nav-link:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.menu-admin .nav-link.active {
+  color: #ffffff;
+  background-color: var(--verde);
+}
+
+/* ===== Tarjetas con cifras del inicio ===== */
+.dato-admin {
+  border-top: 4px solid var(--verde);
+}
+
+.dato-admin .cifra {
+  color: var(--azul);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0;
+}

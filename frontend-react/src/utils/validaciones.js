@@ -53,8 +53,8 @@ export function validarClave(clave) {
 // Campo de texto obligatorio con largo máximo
 export function validarTexto(valor, nombreCampo, maximo) {
   const limpio = valor.trim()
-  if (!limpio) return `${nombreCampo} es obligatorio.`
-  if (limpio.length > maximo) return `${nombreCampo} puede tener máximo ${maximo} caracteres.`
+  if (!limpio) return `Completa ${nombreCampo.toLowerCase()}.`
+  if (limpio.length > maximo) return `Máximo ${maximo} caracteres.`
   return ''
 }
 

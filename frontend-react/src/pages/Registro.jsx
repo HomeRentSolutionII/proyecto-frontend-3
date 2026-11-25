@@ -3,7 +3,11 @@ import { Alert, Button, Card, Col, Container, Form, Row } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import CampoFormulario from '../components/CampoFormulario'
 import { obtenerComunas, REGIONES } from '../data/regiones'
-import { registrarUsuario } from '../data/usuarios'
+import { registrarUsuario } from '../data/usuarios' // [P3-1] BORRAR esta línea
+/* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
+import { registrar } from '../api/auth'
+import { mensajeDeError } from '../api/cliente'
+FIN [P3-1] */
 import { validarClave, validarCorreo, validarRun, validarTexto } from '../utils/validaciones'
 
 const FORMULARIO_VACIO = {
@@ -37,6 +41,9 @@ function Registro() {
   const [datos, setDatos] = useState(FORMULARIO_VACIO)
   const [errores, setErrores] = useState({})
   const [registrado, setRegistrado] = useState(null)
+  /* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
+  const [errorGeneral, setErrorGeneral] = useState('')
+  FIN [P3-1] */
 
   function manejarCambio(evento) {
     const { name, value } = evento.target
@@ -48,6 +55,7 @@ function Registro() {
     }
   }
 
+  // [P3-1] BORRAR desde aquí (versión con localStorage)
   function manejarEnvio(evento) {
     evento.preventDefault()
     const nuevosErrores = validarFormulario(datos)
@@ -62,6 +70,34 @@ function Registro() {
     setRegistrado(usuario)
     setDatos(FORMULARIO_VACIO)
   }
+  // [P3-1] BORRAR hasta aquí
+
+  /* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
+  async function manejarEnvio(evento) {
+    evento.preventDefault()
+    setErrorGeneral('')
+    const nuevosErrores = validarFormulario(datos)
+    setErrores(nuevosErrores)
+    if (Object.keys(nuevosErrores).length > 0) return
+
+    // MS-Usuarios crea la cuenta (rol INQUILINO) y su perfil en MS-Inquilinos
+    try {
+      const respuesta = await registrar(datos)
+      setRegistrado(respuesta.usuario)
+      setDatos(FORMULARIO_VACIO)
+    } catch (error) {
+      const mensaje = mensajeDeError(error)
+      // 409: el correo o el RUN ya tienen cuenta. Se muestra bajo ese campo.
+      if (error.response?.status === 409 && mensaje.includes('correo')) {
+        setErrores({ correo: 'Ya existe una cuenta con este correo.' })
+      } else if (error.response?.status === 409 && mensaje.includes('RUN')) {
+        setErrores({ run: 'Ya existe una cuenta con este RUN.' })
+      } else {
+        setErrorGeneral(mensaje)
+      }
+    }
+  }
+  FIN [P3-1] */
 
   function limpiar() {
     setDatos(FORMULARIO_VACIO)
@@ -83,6 +119,10 @@ function Registro() {
               <Link to="/login">iniciar sesión</Link>.
             </Alert>
           )}
+
+          {/* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
+          {errorGeneral && <Alert variant="danger">{errorGeneral}</Alert>}
+          FIN [P3-1] */}
 
           <Form onSubmit={manejarEnvio} noValidate>
             <Row>

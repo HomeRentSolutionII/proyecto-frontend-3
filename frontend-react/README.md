@@ -34,6 +34,7 @@ src/
 │   └── formato.js         Precios ($68.000), fechas y noches
 ├── components/            Piezas reutilizables (encabezado, pie, tarjeta, campos...)
 ├── pages/                 Una página por archivo
+│   └── admin/             Panel de administración (solo para administradores)
 └── test/                  Pruebas con Vitest (setup.js se ejecuta antes de cada archivo)
 
 public/img/                Imágenes de las propiedades y del banner
@@ -45,7 +46,7 @@ public/img/                Imágenes de las propiedades y del banner
 |---|---|---|
 | Víctor | Inicio, Propiedades, Detalle, Mis reservas, Registro, Login | `/`, `/propiedades`, `/propiedades/:id`, `/reservas`, `/registro`, `/login` |
 | Jhohan | Nosotros, Blog, Detalle blog, Contacto | `/nosotros`, `/blog`, `/blog/:id`, `/contacto` |
-| Noemí | Panel de administración | `/admin` |
+| Noemí | Panel de administración | `/admin`, `/admin/propiedades`, `/admin/propiedades/nueva`, `/admin/propiedades/:id/editar`, `/admin/usuarios`, `/admin/usuarios/nuevo`, `/admin/usuarios/:id/editar` |
 
 ## Cómo agregar tu página
 
@@ -66,7 +67,7 @@ public/img/                Imágenes de las propiedades y del banner
    export default Nosotros
    ```
 
-2. En `App.jsx`, impórtala y reemplaza el `EnConstruccion` de tu ruta:
+2. En `App.jsx`, impórtala y agrega su ruta:
 
    ```jsx
    import Nosotros from './pages/Nosotros'

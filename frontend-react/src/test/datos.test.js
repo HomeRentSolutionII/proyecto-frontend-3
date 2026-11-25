@@ -60,7 +60,7 @@ describe('Reservas y usuarios', () => {
   it('Registra un usuario, no permite correos repetidos y valida sus credenciales', () => {
     const usuario = registrarUsuario({ nombre: 'Ana', correo: 'Ana@gmail.com', clave: 'clave1' })
     expect(usuario.correo).toBe('ana@gmail.com')
-    expect(usuario.tipo).toBe('Cliente')
+    expect(usuario.tipo).toBe('Inquilino')
     expect(registrarUsuario({ nombre: 'Otra', correo: 'ana@gmail.com', clave: 'x1234' })).toBeNull()
 
     expect(validarCredenciales('ana@gmail.com', 'clave1').nombre).toBe('Ana')

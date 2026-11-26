@@ -1,7 +1,9 @@
 import { Badge, Button, Container, Nav, Navbar } from 'react-bootstrap'
 import { Link, NavLink } from 'react-router-dom'
+import { esAdmin, puedeReservar, tieneRol } from '../utils/permisos'
 
 // Menú principal. En pantallas chicas Bootstrap lo colapsa en un botón ☰.
+// Cada rol ve solo sus opciones: el panel (administrador y anfitrión) o Mis reservas (inquilino).
 function Encabezado({ cantidadReservas, usuario, onCerrarSesion }) {
   return (
     <Navbar expand="lg" variant="dark" sticky="top" className="encabezado">
@@ -19,15 +21,20 @@ function Encabezado({ cantidadReservas, usuario, onCerrarSesion }) {
             <Nav.Link as={NavLink} to="/blog">Blog</Nav.Link>
             <Nav.Link as={NavLink} to="/nosotros">Nosotros</Nav.Link>
             <Nav.Link as={NavLink} to="/contacto">Contacto</Nav.Link>
-            {usuario?.tipo === 'Administrador' && (
+            {esAdmin(usuario) && (
               <Nav.Link as={NavLink} to="/admin">Panel admin</Nav.Link>
+            )}
+            {tieneRol(usuario, 'ANFITRION') && (
+              <Nav.Link as={NavLink} to="/admin">Panel anfitrión</Nav.Link>
             )}
           </Nav>
 
           <div className="d-flex flex-wrap align-items-center gap-2 py-2 py-lg-0">
-            <Button as={Link} to="/reservas" variant="outline-light">
-              Mis reservas <Badge bg="warning" text="dark">{cantidadReservas}</Badge>
-            </Button>
+            {puedeReservar(usuario) && (
+              <Button as={Link} to="/reservas" variant="outline-light">
+                Mis reservas <Badge bg="warning" text="dark">{cantidadReservas}</Badge>
+              </Button>
+            )}
 
             {usuario ? (
               <>

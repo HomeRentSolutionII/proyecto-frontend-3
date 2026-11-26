@@ -8,9 +8,9 @@ import {
   obtenerOtroArticulo,
   restablecerArticulos,
 } from '../data/articulos'
-import { eliminarMensaje, guardarMensaje, listarMensajes } from '../data/mensajes'
 import { formatearFechaLarga } from '../utils/fechaLarga'
 import {
+  textoMotivo,
   validarContacto,
   validarCorreoContacto,
   validarMensaje,
@@ -64,26 +64,6 @@ describe('CRUD de artículos del blog', () => {
   })
 })
 
-describe('Mensajes de contacto', () => {
-  const datos = { nombre: 'María Soto', correo: 'maria@correo.cl', telefono: '', motivo: 'consulta', mensaje: 'Hola, tengo una duda.' }
-
-  it('Guarda un mensaje con id y fecha, y lo lista', () => {
-    expect(listarMensajes()).toEqual([])
-    const guardado = guardarMensaje(datos)
-    expect(guardado.id).toBe(1)
-    expect(guardado.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    expect(guardarMensaje(datos).id).toBe(2)
-    expect(listarMensajes()).toHaveLength(2)
-  })
-
-  it('Elimina un mensaje por id', () => {
-    guardarMensaje(datos)
-    expect(eliminarMensaje(1)).toBe(true)
-    expect(eliminarMensaje(1)).toBe(false)
-    expect(listarMensajes()).toEqual([])
-  })
-})
-
 describe('Validación del formulario de contacto', () => {
   it('Nombre: obligatorio, mínimo 3 caracteres y solo letras', () => {
     expect(validarNombre('')).toBe('Ingresa tu nombre.')
@@ -111,6 +91,11 @@ describe('Validación del formulario de contacto', () => {
     expect(validarMensaje('   ')).toBe('Escribe tu mensaje.')
     expect(validarMensaje('Hola')).toContain('al menos 10')
     expect(validarMensaje('Necesito ayuda con mi reserva')).toBe('')
+  })
+
+  it('Traduce el motivo guardado a un texto legible', () => {
+    expect(textoMotivo('reserva')).toBe('Ayuda con una reserva')
+    expect(textoMotivo('desconocido')).toBe('desconocido')
   })
 
   it('validarContacto devuelve solo los campos con error', () => {

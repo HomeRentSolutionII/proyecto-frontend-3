@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react'
 import { Button, Col, Container, Row } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
+import { mensajeDeError } from '../api/cliente'
+import { listarPropiedades } from '../api/propiedades'
+import EstadoCarga from '../components/EstadoCarga'
 import TarjetaPropiedad from '../components/TarjetaPropiedad'
-import { listarPropiedades } from '../data/propiedades'
 
 const PASOS = [
   { numero: 1, titulo: 'Busca', texto: 'Filtra por ubicación, tipo de propiedad y precio.' },
@@ -10,7 +13,17 @@ const PASOS = [
 ]
 
 function Inicio() {
-  const destacadas = listarPropiedades().filter((propiedad) => propiedad.destacada)
+  const [destacadas, setDestacadas] = useState([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState('')
+
+  // Las destacadas son las propiedades que el administrador marcó así en MS-Propiedades
+  useEffect(() => {
+    listarPropiedades()
+      .then((propiedades) => setDestacadas(propiedades.filter((propiedad) => propiedad.destacada)))
+      .catch((errorCarga) => setError(mensajeDeError(errorCarga)))
+      .finally(() => setCargando(false))
+  }, [])
 
   return (
     <>
@@ -30,13 +43,15 @@ function Inicio() {
         <h2 className="titulo">Propiedades destacadas</h2>
         <p className="text-muted">Algunas de las más reservadas esta temporada.</p>
 
-        <Row xs={1} sm={2} lg={3} className="g-4">
-          {destacadas.map((propiedad) => (
-            <Col key={propiedad.id}>
-              <TarjetaPropiedad propiedad={propiedad} />
-            </Col>
-          ))}
-        </Row>
+        <EstadoCarga cargando={cargando} error={error}>
+          <Row xs={1} sm={2} lg={3} className="g-4">
+            {destacadas.map((propiedad) => (
+              <Col key={propiedad.id}>
+                <TarjetaPropiedad propiedad={propiedad} />
+              </Col>
+            ))}
+          </Row>
+        </EstadoCarga>
 
         <div className="text-center mt-4">
           <Button as={Link} to="/propiedades" variant="outline-dark">Ver todas las propiedades</Button>

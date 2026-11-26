@@ -20,6 +20,7 @@ export function validarPropiedad(datos) {
   return soloConErrores({
     nombre: validarTexto(datos.nombre, 'El nombre', 100),
     tipo: datos.tipo ? '' : 'Selecciona un tipo de propiedad.',
+    idAnfitrion: datos.idAnfitrion ? '' : 'Selecciona el anfitrión dueño de la propiedad.',
     ubicacion: validarTexto(datos.ubicacion, 'La ubicación', 100),
     precio: validarNumero(datos.precio, 'el precio', 1000),
     capacidad: validarNumero(datos.capacidad, 'la capacidad', 1),

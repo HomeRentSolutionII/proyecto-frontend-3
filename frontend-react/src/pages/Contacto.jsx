@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Alert, Button, Card, Col, Container, Form, Row } from 'react-bootstrap'
+import { mensajeDeError } from '../api/cliente'
+import { enviarMensaje } from '../api/contacto'
 import CampoFormulario from '../components/CampoFormulario'
-import { guardarMensaje } from '../data/mensajes'
 import {
   LIMITE_MENSAJE,
   MOTIVOS,
@@ -30,6 +31,8 @@ function Contacto() {
   const [errores, setErrores] = useState({})
   const [tocados, setTocados] = useState({}) // campos que la persona ya revisó
   const [confirmacion, setConfirmacion] = useState('')
+  const [errorEnvio, setErrorEnvio] = useState('')
+  const [enviando, setEnviando] = useState(false)
 
   // Revisa un solo campo y deja su error (o lo borra) en el estado
   function revisarCampo(nombre, valor) {
@@ -50,9 +53,10 @@ function Contacto() {
     revisarCampo(name, value)
   }
 
-  function manejarEnvio(evento) {
+  async function manejarEnvio(evento) {
     evento.preventDefault()
     setConfirmacion('')
+    setErrorEnvio('')
 
     const nuevosErrores = validarContacto(datos)
     setErrores(nuevosErrores)
@@ -65,13 +69,22 @@ function Contacto() {
       return
     }
 
-    guardarMensaje({
-      nombre: datos.nombre.trim(),
-      correo: datos.correo.trim(),
-      telefono: datos.telefono.trim(),
-      motivo: datos.motivo,
-      mensaje: datos.mensaje.trim(),
-    })
+    // El mensaje se guarda en MS-Mensajería; el administrador lo ve en su panel
+    setEnviando(true)
+    try {
+      await enviarMensaje({
+        nombre: datos.nombre.trim(),
+        correo: datos.correo.trim(),
+        telefono: datos.telefono.trim(),
+        motivo: datos.motivo,
+        mensaje: datos.mensaje.trim(),
+      })
+    } catch (error) {
+      setErrorEnvio(mensajeDeError(error, 'No se pudo enviar el mensaje. Intenta nuevamente.'))
+      return
+    } finally {
+      setEnviando(false)
+    }
     setConfirmacion(
       `Gracias, ${datos.nombre.trim()}. Recibimos tu mensaje y te responderemos a ${datos.correo.trim()}.`,
     )
@@ -132,8 +145,11 @@ function Contacto() {
             </CampoFormulario>
 
             {confirmacion && <Alert variant="success" role="status">{confirmacion}</Alert>}
+            {errorEnvio && <Alert variant="danger">{errorEnvio}</Alert>}
 
-            <Button type="submit" variant="primary">Enviar mensaje</Button>
+            <Button type="submit" variant="primary" disabled={enviando}>
+              {enviando ? 'Enviando...' : 'Enviar mensaje'}
+            </Button>
           </Form>
         </Col>
 

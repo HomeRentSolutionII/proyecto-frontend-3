@@ -2,48 +2,19 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
-/* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
 import { iniciarSesion, registrar } from '../api/auth'
-FIN [P3-1] */
+
 import Login from '../pages/Login'
 import Registro from '../pages/Registro'
 
-/* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
 // Las páginas ya no leen localStorage: llaman a MS-Usuarios. En las pruebas esas llamadas se
 // reemplazan por funciones simuladas (vi.fn), así no hace falta tener el backend encendido.
 vi.mock('../api/auth', () => ({ iniciarSesion: vi.fn(), registrar: vi.fn() }))
-FIN [P3-1] */
+
 
 describe('Formulario de inicio de sesión', () => {
-  // [P3-1] BORRAR desde aquí (pruebas de la versión con localStorage)
-  it('Muestra un error si las credenciales no corresponden a ningún usuario', async () => {
-    const usuario = userEvent.setup()
-    const onIniciarSesion = vi.fn()
-    render(<MemoryRouter><Login onIniciarSesion={onIniciarSesion} /></MemoryRouter>)
 
-    await usuario.type(screen.getByLabelText(/Correo electrónico/), 'nadie@gmail.com')
-    await usuario.type(screen.getByLabelText(/Contraseña/), 'clave1')
-    await usuario.click(screen.getByRole('button', { name: 'Ingresar' }))
 
-    expect(screen.getByText('Correo o contraseña incorrectos.')).toBeInTheDocument()
-    expect(onIniciarSesion).not.toHaveBeenCalled()
-  })
-
-  it('Con credenciales válidas llama a onIniciarSesion con el usuario', async () => {
-    const usuario = userEvent.setup()
-    const onIniciarSesion = vi.fn()
-    render(<MemoryRouter><Login onIniciarSesion={onIniciarSesion} /></MemoryRouter>)
-
-    // Usuario administrador de prueba definido en data/usuarios.js
-    await usuario.type(screen.getByLabelText(/Correo electrónico/), 'admin@duoc.cl')
-    await usuario.type(screen.getByLabelText(/Contraseña/), 'admin123')
-    await usuario.click(screen.getByRole('button', { name: 'Ingresar' }))
-
-    expect(onIniciarSesion).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'Administrador' }))
-  })
-  // [P3-1] BORRAR hasta aquí
-
-  /* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
   it('Muestra un error si MS-Usuarios rechaza las credenciales (401)', async () => {
     iniciarSesion.mockRejectedValue({ response: { status: 401 } })
     const usuario = userEvent.setup()
@@ -84,7 +55,6 @@ describe('Formulario de inicio de sesión', () => {
     expect(iniciarSesion).toHaveBeenCalledWith('admin@duoc.cl', 'admin123')
     await vi.waitFor(() => expect(onIniciarSesion).toHaveBeenCalledWith(respuesta))
   })
-  FIN [P3-1] */
 
   it('El botón de administrador de prueba rellena el formulario', async () => {
     const usuario = userEvent.setup()
@@ -99,7 +69,7 @@ describe('Formulario de inicio de sesión', () => {
   it('Si ya hay sesión de administrador, muestra el aviso y el acceso al panel', async () => {
     const usuario = userEvent.setup()
     const onCerrarSesion = vi.fn()
-    const admin = { nombre: 'Administrador', tipo: 'Administrador' }
+    const admin = { nombre: 'Administrador', rol: 'ADMIN', tipo: 'Administrador' }
     render(<MemoryRouter><Login usuario={admin} onIniciarSesion={vi.fn()} onCerrarSesion={onCerrarSesion} /></MemoryRouter>)
 
     expect(screen.getByText('Administrador')).toBeInTheDocument()
@@ -149,7 +119,6 @@ describe('Formulario de registro', () => {
     expect(screen.queryByRole('option', { name: 'Ñuñoa' })).not.toBeInTheDocument()
   })
 
-  /* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
   // Llena todo el formulario con datos válidos
   async function llenarFormulario(usuario) {
     await usuario.type(screen.getByLabelText(/^RUN/), '123456785')
@@ -186,5 +155,4 @@ describe('Formulario de registro', () => {
 
     expect(await screen.findByText('Ya existe una cuenta con este correo.')).toBeInTheDocument()
   })
-  FIN [P3-1] */
 })

@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react'
 import { Badge, Breadcrumb, Button, Col, Container, Row } from 'react-bootstrap'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { mensajeDeError } from '../api/cliente'
+import { obtenerPropiedad } from '../api/propiedades'
+import EstadoCarga from '../components/EstadoCarga'
 import PanelReserva from '../components/PanelReserva'
-import { obtenerPropiedad } from '../data/propiedades'
 
 const NORMAS = [
   'Llegada desde las 15:00 horas',
@@ -10,11 +13,36 @@ const NORMAS = [
   'No se admiten mascotas',
 ]
 
-function DetallePropiedad({ onAgregarReserva }) {
+function DetallePropiedad({ usuario, onAgregarReserva }) {
   const { id } = useParams() // el id viene de la URL: /propiedades/3
   const navegar = useNavigate()
-  const propiedad = obtenerPropiedad(id)
+  // Resultado de pedir la propiedad a MS-Propiedades, junto con el id que se pidió
+  const [carga, setCarga] = useState({ id: null, propiedad: null, error: '' })
 
+  useEffect(() => {
+    let vigente = true
+    obtenerPropiedad(id)
+      .then((propiedad) => {
+        if (vigente) setCarga({ id, propiedad, error: '' })
+      })
+      .catch((error) => {
+        if (vigente) setCarga({ id, propiedad: null, error: mensajeDeError(error) })
+      })
+    return () => {
+      vigente = false
+    }
+  }, [id])
+
+  // Mientras no llega la respuesta del id de la URL, se muestra "Cargando..."
+  if (carga.id !== id || carga.error) {
+    return (
+      <Container className="py-5">
+        <EstadoCarga cargando={carga.id !== id} error={carga.error} />
+      </Container>
+    )
+  }
+
+  const propiedad = carga.propiedad
   if (!propiedad) {
     return (
       <Container className="py-5 text-center">
@@ -79,7 +107,7 @@ function DetallePropiedad({ onAgregarReserva }) {
 
         {/* ===== PANEL DE RESERVA ===== */}
         <Col lg={4}>
-          <PanelReserva propiedad={propiedad} onAgregar={agregar} />
+          <PanelReserva propiedad={propiedad} usuario={usuario} onAgregar={agregar} />
         </Col>
       </Row>
     </Container>

@@ -1,13 +1,11 @@
-import { useState } from 'react' // [P3-1] BORRAR esta línea
-/* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
 import { useEffect, useState } from 'react'
-FIN [P3-1] */
-import { Route, Routes } from 'react-router-dom'
+
+import { Navigate, Route, Routes } from 'react-router-dom'
 import Encabezado from './components/Encabezado'
 import PiePagina from './components/PiePagina'
-import { agregarReserva, obtenerReservas, quitarReserva, vaciarReservas } from './data/reservas'
-import { cerrarSesion, guardarSesion, obtenerSesion } from './data/usuarios' // [P3-1] BORRAR esta línea
-/* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
+import RutaProtegida from './components/RutaProtegida'
+import { agregarReserva, obtenerReservas, quitarReserva, quitarReservas } from './data/reservas'
+
 import { obtenerUsuarioActual } from './api/auth'
 import {
   actualizarUsuarioSesion,
@@ -16,11 +14,14 @@ import {
   guardarSesion,
   obtenerSesion,
 } from './api/sesion'
-FIN [P3-1] */
+
 import AdminInicio from './pages/admin/AdminInicio'
 import AdminLayout from './pages/admin/AdminLayout'
+import AdminMensajes from './pages/admin/AdminMensajes'
 import AdminPropiedades from './pages/admin/AdminPropiedades'
+import AdminReservas from './pages/admin/AdminReservas'
 import AdminUsuarios from './pages/admin/AdminUsuarios'
+import DetalleReserva from './pages/admin/DetalleReserva'
 import FormularioPropiedad from './pages/admin/FormularioPropiedad'
 import FormularioUsuario from './pages/admin/FormularioUsuario'
 import DetallePropiedad from './pages/DetallePropiedad'
@@ -34,13 +35,14 @@ import Nosotros from './pages/Nosotros'
 import Propiedades from './pages/Propiedades'
 import Registro from './pages/Registro'
 import Reservas from './pages/Reservas'
+import { esAdmin, puedeReservar } from './utils/permisos'
 
 function App() {
   // Estado compartido por varias páginas. Vive aquí y baja por props.
   const [reservas, setReservas] = useState(() => obtenerReservas())
   const [usuario, setUsuario] = useState(() => obtenerSesion())
 
-  /* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
+
   // Si el token vence y no se puede renovar, cliente.js avisa con este evento y se cierra la sesión
   useEffect(() => {
     function alExpirarSesion() {
@@ -59,7 +61,7 @@ function App() {
       })
       .catch(() => {}) // si el token ya no sirve, cliente.js ya cerró la sesión
   }, [])
-  FIN [P3-1] */
+
 
   function manejarAgregarReserva(reserva) {
     setReservas(agregarReserva(reserva))
@@ -69,8 +71,9 @@ function App() {
     setReservas(quitarReserva(id))
   }
 
-  function manejarConfirmarReservas() {
-    setReservas(vaciarReservas())
+  // Recibe los ids de las estadías que MS-Reservas aceptó y las saca del carrito
+  function manejarConfirmarReservas(ids) {
+    setReservas(quitarReservas(ids))
   }
 
   function manejarIniciarSesion(datosUsuario) {
@@ -80,6 +83,11 @@ function App() {
   function manejarCerrarSesion() {
     cerrarSesion()
     setUsuario(null)
+  }
+
+  // Envuelve una página del panel que solo puede ver el administrador
+  function soloAdmin(pagina) {
+    return <RutaProtegida usuario={usuario} roles={['ADMIN']}>{pagina}</RutaProtegida>
   }
 
   return (
@@ -97,17 +105,22 @@ function App() {
           <Route path="/propiedades" element={<Propiedades />} />
           <Route
             path="/propiedades/:id"
-            element={<DetallePropiedad onAgregarReserva={manejarAgregarReserva} />}
+            element={<DetallePropiedad usuario={usuario} onAgregarReserva={manejarAgregarReserva} />}
           />
+          {/* Mis reservas: visitantes e inquilinos. El administrador y el anfitrión no reservan. */}
           <Route
             path="/reservas"
             element={
-              <Reservas
-                reservas={reservas}
-                usuario={usuario}
-                onQuitar={manejarQuitarReserva}
-                onConfirmar={manejarConfirmarReservas}
-              />
+              puedeReservar(usuario) ? (
+                <Reservas
+                  reservas={reservas}
+                  usuario={usuario}
+                  onQuitar={manejarQuitarReserva}
+                  onConfirmar={manejarConfirmarReservas}
+                />
+              ) : (
+                <RutaProtegida usuario={usuario} roles={['INQUILINO']} />
+              )
             }
           />
           <Route path="/registro" element={<Registro />} />
@@ -124,15 +137,20 @@ function App() {
           <Route path="/blog/:id" element={<DetalleBlog />} />
           <Route path="/contacto" element={<Contacto />} />
 
-          {/* ===== Panel de administración: rutas anidadas dentro de AdminLayout ===== */}
+          {/* ===== Panel: rutas anidadas dentro de AdminLayout =====
+              Entran el administrador y el anfitrión. El anfitrión solo ve propiedades y reservas;
+              el resto está envuelto en soloAdmin(...). */}
           <Route path="/admin" element={<AdminLayout usuario={usuario} />}>
-            <Route index element={<AdminInicio />} />
-            <Route path="propiedades" element={<AdminPropiedades />} />
-            <Route path="propiedades/nueva" element={<FormularioPropiedad key="nueva" />} />
-            <Route path="propiedades/:id/editar" element={<FormularioPropiedad key="editar" />} />
-            <Route path="usuarios" element={<AdminUsuarios usuarioActual={usuario} />} />
-            <Route path="usuarios/nuevo" element={<FormularioUsuario key="nuevo" />} />
-            <Route path="usuarios/:id/editar" element={<FormularioUsuario key="editar" />} />
+            <Route index element={esAdmin(usuario) ? <AdminInicio /> : <Navigate to="propiedades" replace />} />
+            <Route path="propiedades" element={<AdminPropiedades usuario={usuario} />} />
+            <Route path="propiedades/nueva" element={soloAdmin(<FormularioPropiedad key="nueva" />)} />
+            <Route path="propiedades/:id/editar" element={soloAdmin(<FormularioPropiedad key="editar" />)} />
+            <Route path="reservas" element={<AdminReservas />} />
+            <Route path="reservas/:id" element={<DetalleReserva />} />
+            <Route path="usuarios" element={soloAdmin(<AdminUsuarios usuarioActual={usuario} />)} />
+            <Route path="usuarios/nuevo" element={soloAdmin(<FormularioUsuario key="nuevo" />)} />
+            <Route path="usuarios/:id/editar" element={soloAdmin(<FormularioUsuario key="editar" />)} />
+            <Route path="mensajes" element={soloAdmin(<AdminMensajes />)} />
           </Route>
 
           <Route path="*" element={<NoEncontrada />} />

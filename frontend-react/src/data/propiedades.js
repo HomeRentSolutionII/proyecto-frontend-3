@@ -1,63 +1,7 @@
-// Fuente de datos simulada de propiedades (reemplaza a la base de datos).
-// La primera vez carga el JSON inicial y desde ahí todo se guarda en
-// localStorage, así los cambios se mantienen al recargar la página.
-import datosIniciales from '../assets/js/propiedades.json'
+// Ayudas para trabajar con la lista de propiedades que entrega MS-Propiedades
+// (las llamadas al backend están en src/api/propiedades.js).
 
-// Si se cambian los datos iniciales del JSON, subir el número de versión:
-// así el navegador descarta los datos viejos guardados y carga los nuevos.
-const CLAVE = 'hrs_propiedades_v2'
-
-function guardar(lista) {
-  localStorage.setItem(CLAVE, JSON.stringify(lista))
-}
-
-// ===== LEER =====
-export function listarPropiedades() {
-  const guardadas = localStorage.getItem(CLAVE)
-  if (guardadas) {
-    return JSON.parse(guardadas)
-  }
-  guardar(datosIniciales)
-  return [...datosIniciales]
-}
-
-export function obtenerPropiedad(id) {
-  return listarPropiedades().find((propiedad) => propiedad.id === Number(id)) || null
-}
-
-// ===== CREAR =====
-export function crearPropiedad(datos) {
-  const lista = listarPropiedades()
-  const ids = lista.map((propiedad) => propiedad.id)
-  const nueva = { ...datos, id: Math.max(0, ...ids) + 1 }
-  guardar([...lista, nueva])
-  return nueva
-}
-
-// ===== ACTUALIZAR =====
-export function actualizarPropiedad(id, cambios) {
-  let actualizada = null
-  const lista = listarPropiedades().map((propiedad) => {
-    if (propiedad.id !== Number(id)) return propiedad
-    actualizada = { ...propiedad, ...cambios, id: propiedad.id }
-    return actualizada
-  })
-  guardar(lista)
-  return actualizada
-}
-
-// ===== ELIMINAR =====
-export function eliminarPropiedad(id) {
-  const lista = listarPropiedades()
-  const restantes = lista.filter((propiedad) => propiedad.id !== Number(id))
-  guardar(restantes)
-  return restantes.length < lista.length
-}
-
-// Vuelve a los datos del JSON (útil para el panel de administración y las pruebas)
-export function restablecerPropiedades() {
-  guardar(datosIniciales)
-}
+export const TIPOS_PROPIEDAD = ['Departamento', 'Casa', 'Cabaña', 'Loft', 'Parcela']
 
 // ===== FILTROS =====
 // No modifica los datos: recibe una lista y devuelve solo las que cumplen.
@@ -75,5 +19,3 @@ export function filtrarPropiedades(lista, filtros) {
     return coincideTexto && coincideTipo && coincidePrecio
   })
 }
-
-export const TIPOS_PROPIEDAD = ['Departamento', 'Casa', 'Cabaña', 'Loft', 'Parcela']

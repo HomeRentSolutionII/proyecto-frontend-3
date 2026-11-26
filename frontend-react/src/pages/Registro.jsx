@@ -3,11 +3,9 @@ import { Alert, Button, Card, Col, Container, Form, Row } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import CampoFormulario from '../components/CampoFormulario'
 import { obtenerComunas, REGIONES } from '../data/regiones'
-import { registrarUsuario } from '../data/usuarios' // [P3-1] BORRAR esta línea
-/* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
 import { registrar } from '../api/auth'
 import { mensajeDeError } from '../api/cliente'
-FIN [P3-1] */
+
 import { validarClave, validarCorreo, validarRun, validarTexto } from '../utils/validaciones'
 
 const FORMULARIO_VACIO = {
@@ -41,9 +39,8 @@ function Registro() {
   const [datos, setDatos] = useState(FORMULARIO_VACIO)
   const [errores, setErrores] = useState({})
   const [registrado, setRegistrado] = useState(null)
-  /* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
   const [errorGeneral, setErrorGeneral] = useState('')
-  FIN [P3-1] */
+
 
   function manejarCambio(evento) {
     const { name, value } = evento.target
@@ -55,24 +52,7 @@ function Registro() {
     }
   }
 
-  // [P3-1] BORRAR desde aquí (versión con localStorage)
-  function manejarEnvio(evento) {
-    evento.preventDefault()
-    const nuevosErrores = validarFormulario(datos)
-    setErrores(nuevosErrores)
-    if (Object.keys(nuevosErrores).length > 0) return
 
-    const usuario = registrarUsuario({ ...datos, run: datos.run.toUpperCase() })
-    if (!usuario) {
-      setErrores({ correo: 'Ya existe una cuenta con este correo.' })
-      return
-    }
-    setRegistrado(usuario)
-    setDatos(FORMULARIO_VACIO)
-  }
-  // [P3-1] BORRAR hasta aquí
-
-  /* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
   async function manejarEnvio(evento) {
     evento.preventDefault()
     setErrorGeneral('')
@@ -97,7 +77,6 @@ function Registro() {
       }
     }
   }
-  FIN [P3-1] */
 
   function limpiar() {
     setDatos(FORMULARIO_VACIO)
@@ -120,9 +99,7 @@ function Registro() {
             </Alert>
           )}
 
-          {/* [P3-1] DESCOMENTAR: borra esta línea y la que dice "FIN [P3-1]"
           {errorGeneral && <Alert variant="danger">{errorGeneral}</Alert>}
-          FIN [P3-1] */}
 
           <Form onSubmit={manejarEnvio} noValidate>
             <Row>

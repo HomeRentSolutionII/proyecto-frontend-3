@@ -1,13 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, Button, Card, Col, Form, Row } from 'react-bootstrap'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { listarAnfitriones } from '../../api/anfitriones'
+import { mensajeDeError } from '../../api/cliente'
+import { actualizarPropiedad, crearPropiedad, obtenerPropiedad } from '../../api/propiedades'
 import CampoFormulario from '../../components/CampoFormulario'
-import {
-  actualizarPropiedad,
-  crearPropiedad,
-  obtenerPropiedad,
-  TIPOS_PROPIEDAD,
-} from '../../data/propiedades'
+import EstadoCarga from '../../components/EstadoCarga'
+import { TIPOS_PROPIEDAD } from '../../data/propiedades'
 import { validarPropiedad } from '../../utils/validacionesAdmin'
 
 // Fotos disponibles en public/img
@@ -23,6 +22,7 @@ const FORMULARIO_VACIO = {
   banos: '',
   superficie: '',
   descripcion: '',
+  idAnfitrion: '',
   imagen: IMAGENES[0],
   servicios: '',
   destacada: false,
@@ -38,6 +38,7 @@ function aFormulario(propiedad) {
     habitaciones: String(propiedad.habitaciones ?? ''),
     banos: String(propiedad.banos ?? ''),
     superficie: String(propiedad.superficie ?? ''),
+    idAnfitrion: String(propiedad.idAnfitrion ?? ''),
     servicios: (propiedad.servicios || []).join(', '),
   }
 }
@@ -47,11 +48,29 @@ function FormularioPropiedad() {
   const { id } = useParams()
   const navegar = useNavigate()
   const esEdicion = id !== undefined
-  const [propiedad] = useState(() => (esEdicion ? obtenerPropiedad(id) : null))
-  const [datos, setDatos] = useState(() => (propiedad ? aFormulario(propiedad) : FORMULARIO_VACIO))
+  const [datos, setDatos] = useState(FORMULARIO_VACIO)
+  const [anfitriones, setAnfitriones] = useState([])
+  const [carga, setCarga] = useState({ cargando: true, error: '', existe: true })
   const [errores, setErrores] = useState({})
+  const [errorGuardar, setErrorGuardar] = useState('')
+  const [guardando, setGuardando] = useState(false)
 
-  if (esEdicion && !propiedad) {
+  // Se cargan los anfitriones (para elegir el dueño) y, al editar, la propiedad
+  useEffect(() => {
+    Promise.all([listarAnfitriones(), esEdicion ? obtenerPropiedad(id) : null])
+      .then(([listaAnfitriones, propiedad]) => {
+        setAnfitriones(listaAnfitriones)
+        if (propiedad) setDatos(aFormulario(propiedad))
+        setCarga({ cargando: false, error: '', existe: !esEdicion || Boolean(propiedad) })
+      })
+      .catch((error) => setCarga({ cargando: false, error: mensajeDeError(error), existe: true }))
+  }, [id, esEdicion])
+
+  if (carga.cargando || carga.error) {
+    return <EstadoCarga cargando={carga.cargando} error={carga.error} />
+  }
+
+  if (!carga.existe) {
     return (
       <section>
         <h1 className="titulo">Propiedad no encontrada</h1>
@@ -66,8 +85,9 @@ function FormularioPropiedad() {
     setDatos({ ...datos, [name]: type === 'checkbox' ? checked : value })
   }
 
-  function manejarEnvio(evento) {
+  async function manejarEnvio(evento) {
     evento.preventDefault()
+    setErrorGuardar('')
     const nuevosErrores = validarPropiedad(datos)
     setErrores(nuevosErrores)
     if (Object.keys(nuevosErrores).length > 0) return
@@ -83,15 +103,23 @@ function FormularioPropiedad() {
       habitaciones: Number(datos.habitaciones),
       banos: Number(datos.banos),
       superficie: Number(datos.superficie),
+      idAnfitrion: Number(datos.idAnfitrion),
       servicios: datos.servicios.split(',').map((servicio) => servicio.trim()).filter(Boolean),
     }
 
-    if (esEdicion) {
-      actualizarPropiedad(id, propiedadLista)
-    } else {
-      crearPropiedad(propiedadLista)
+    // MS-Propiedades guarda la propiedad (al crearla, MS-Precios recibe sus reglas por temporada)
+    setGuardando(true)
+    try {
+      if (esEdicion) {
+        await actualizarPropiedad(id, propiedadLista)
+      } else {
+        await crearPropiedad(propiedadLista)
+      }
+      navegar('/admin/propiedades')
+    } catch (error) {
+      setErrorGuardar(mensajeDeError(error, 'No se pudo guardar la propiedad.'))
+      setGuardando(false)
     }
-    navegar('/admin/propiedades')
   }
 
   return (
@@ -122,6 +150,17 @@ function FormularioPropiedad() {
                 </CampoFormulario>
               </Col>
             </Row>
+
+            <CampoFormulario id="idAnfitrion" etiqueta="Anfitrión" obligatorio error={errores.idAnfitrion}
+              ayuda="Dueño de la propiedad, registrado en MS-Anfitriones.">
+              <Form.Select name="idAnfitrion" value={datos.idAnfitrion} onChange={manejarCambio}
+                isInvalid={!!errores.idAnfitrion}>
+                <option value="">Seleccionar anfitrión</option>
+                {anfitriones.map((anfitrion) => (
+                  <option key={anfitrion.id} value={anfitrion.id}>{anfitrion.nombre} ({anfitrion.correo})</option>
+                ))}
+              </Form.Select>
+            </CampoFormulario>
 
             <Row>
               <Col md={6}>
@@ -191,8 +230,12 @@ function FormularioPropiedad() {
               </Col>
             </Row>
 
+            {errorGuardar && <Alert variant="danger">{errorGuardar}</Alert>}
+
             <div className="d-flex flex-wrap gap-2">
-              <Button type="submit" variant="primary">Guardar propiedad</Button>
+              <Button type="submit" variant="primary" disabled={guardando}>
+                {guardando ? 'Guardando...' : 'Guardar propiedad'}
+              </Button>
               <Button as={Link} to="/admin/propiedades" variant="outline-dark">Cancelar</Button>
             </div>
           </Form>

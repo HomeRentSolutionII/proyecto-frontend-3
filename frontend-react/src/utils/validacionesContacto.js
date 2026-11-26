@@ -40,6 +40,12 @@ export function validarTelefono(valor) {
   return ''
 }
 
+// Texto legible de un motivo guardado ("reserva" → "Ayuda con una reserva")
+export function textoMotivo(valor) {
+  const motivo = MOTIVOS.find((opcion) => opcion.valor === valor)
+  return motivo ? motivo.texto : valor
+}
+
 export function validarMotivo(valor) {
   return valor ? '' : 'Selecciona el motivo de tu mensaje.'
 }

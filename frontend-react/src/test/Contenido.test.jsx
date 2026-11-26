@@ -1,14 +1,17 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { enviarMensaje } from '../api/contacto'
 import TarjetaArticulo from '../components/TarjetaArticulo'
 import { eliminarArticulo, listarArticulos, obtenerArticulo } from '../data/articulos'
-import { listarMensajes } from '../data/mensajes'
 import Blog from '../pages/Blog'
 import Contacto from '../pages/Contacto'
 import DetalleBlog from '../pages/DetalleBlog'
 import Nosotros from '../pages/Nosotros'
+
+// MS-Mensajería simulado
+vi.mock('../api/contacto')
 
 describe('Nosotros', () => {
   it('Muestra la presentación, los perfiles de la plataforma y al equipo', () => {
@@ -84,6 +87,11 @@ describe('DetalleBlog', () => {
 })
 
 describe('Contacto', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    enviarMensaje.mockResolvedValue({ id: 1 })
+  })
+
   async function llenarFormularioValido(usuario) {
     await usuario.type(screen.getByLabelText(/Nombre/), 'María Soto')
     await usuario.type(screen.getByLabelText(/Correo electrónico/), 'maria@correo.cl')
@@ -102,7 +110,7 @@ describe('Contacto', () => {
     expect(screen.getByText('Selecciona el motivo de tu mensaje.')).toBeInTheDocument()
     expect(screen.getByText('Escribe tu mensaje.')).toBeInTheDocument()
     expect(screen.getByLabelText(/Nombre/)).toHaveFocus()
-    expect(listarMensajes()).toHaveLength(0)
+    expect(enviarMensaje).not.toHaveBeenCalled()
   })
 
   it('Revisa un campo al salir de él y corrige el error mientras se escribe', async () => {
@@ -135,20 +143,31 @@ describe('Contacto', () => {
     expect(screen.getByText('4 / 500')).toBeInTheDocument()
   })
 
-  it('Con datos válidos guarda el mensaje, confirma y limpia el formulario', async () => {
+  it('Con datos válidos envía el mensaje a MS-Mensajería, confirma y limpia el formulario', async () => {
     const usuario = userEvent.setup()
     render(<Contacto />)
 
     await llenarFormularioValido(usuario)
     await usuario.click(screen.getByRole('button', { name: 'Enviar mensaje' }))
 
-    expect(screen.getByRole('status')).toHaveTextContent('Gracias, María Soto. Recibimos tu mensaje y te responderemos a maria@correo.cl.')
+    expect(await screen.findByRole('status')).toHaveTextContent('Gracias, María Soto. Recibimos tu mensaje y te responderemos a maria@correo.cl.')
     expect(screen.getByLabelText(/Nombre/)).toHaveValue('')
     expect(screen.getByText('0 / 500')).toBeInTheDocument()
+    expect(enviarMensaje).toHaveBeenCalledWith(
+      expect.objectContaining({ nombre: 'María Soto', correo: 'maria@correo.cl', motivo: 'reserva' }),
+    )
+  })
 
-    const guardados = listarMensajes()
-    expect(guardados).toHaveLength(1)
-    expect(guardados[0]).toMatchObject({ nombre: 'María Soto', correo: 'maria@correo.cl', motivo: 'reserva' })
+  it('Si el backend rechaza el mensaje, muestra el error y no borra lo escrito', async () => {
+    enviarMensaje.mockRejectedValue({ response: { status: 400, data: { mensaje: 'El motivo no es válido' } } })
+    const usuario = userEvent.setup()
+    render(<Contacto />)
+
+    await llenarFormularioValido(usuario)
+    await usuario.click(screen.getByRole('button', { name: 'Enviar mensaje' }))
+
+    expect(await screen.findByText('El motivo no es válido')).toBeInTheDocument()
+    expect(screen.getByLabelText(/Nombre/)).toHaveValue('María Soto')
   })
 
   it('Muestra los datos de contacto de la empresa', () => {

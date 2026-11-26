@@ -1,14 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, Button, Card, Col, Form, Row } from 'react-bootstrap'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { mensajeDeError } from '../../api/cliente'
+import { actualizarUsuario, crearUsuario, obtenerUsuario } from '../../api/usuarios'
 import CampoFormulario from '../../components/CampoFormulario'
-import {
-  actualizarUsuario,
-  listarUsuarios,
-  obtenerUsuarioPorCorreo,
-  registrarUsuario,
-  TIPOS_USUARIO,
-} from '../../data/usuarios'
+import EstadoCarga from '../../components/EstadoCarga'
+import { TIPOS_USUARIO } from '../../data/usuarios'
 import { validarUsuarioAdmin } from '../../utils/validacionesAdmin'
 
 const FORMULARIO_VACIO = {
@@ -27,15 +24,29 @@ function FormularioUsuario() {
   const { id } = useParams()
   const navegar = useNavigate()
   const esEdicion = id !== undefined
-  const [usuario] = useState(() =>
-    esEdicion ? listarUsuarios().find((guardado) => guardado.id === Number(id)) || null : null,
-  )
-  const [datos, setDatos] = useState(() =>
-    usuario ? { ...FORMULARIO_VACIO, ...usuario, clave: '', confirmarClave: '' } : FORMULARIO_VACIO,
-  )
+  const [datos, setDatos] = useState(FORMULARIO_VACIO)
+  const [carga, setCarga] = useState({ cargando: esEdicion, error: '', existe: true })
   const [errores, setErrores] = useState({})
+  const [errorGuardar, setErrorGuardar] = useState('')
+  const [guardando, setGuardando] = useState(false)
 
-  if (esEdicion && !usuario) {
+  // Al editar, se cargan los datos del usuario desde MS-Usuarios
+  useEffect(() => {
+    if (!esEdicion) return
+    obtenerUsuario(id)
+      .then((usuario) => {
+        // se guardan también región, comuna y fecha de nacimiento, para no perderlas al guardar
+        if (usuario) setDatos({ ...FORMULARIO_VACIO, ...usuario, clave: '', confirmarClave: '' })
+        setCarga({ cargando: false, error: '', existe: Boolean(usuario) })
+      })
+      .catch((error) => setCarga({ cargando: false, error: mensajeDeError(error), existe: true }))
+  }, [id, esEdicion])
+
+  if (carga.cargando || carga.error) {
+    return <EstadoCarga cargando={carga.cargando} error={carga.error} />
+  }
+
+  if (!carga.existe) {
     return (
       <section>
         <h1 className="titulo">Usuario no encontrado</h1>
@@ -49,15 +60,10 @@ function FormularioUsuario() {
     setDatos({ ...datos, [evento.target.name]: evento.target.value })
   }
 
-  function manejarEnvio(evento) {
+  async function manejarEnvio(evento) {
     evento.preventDefault()
+    setErrorGuardar('')
     const nuevosErrores = validarUsuarioAdmin(datos, esEdicion)
-    if (Object.keys(nuevosErrores).length === 0) {
-      const mismoCorreo = obtenerUsuarioPorCorreo(datos.correo)
-      if (mismoCorreo && mismoCorreo.id !== usuario?.id) {
-        nuevosErrores.correo = 'Ya existe una cuenta con este correo.'
-      }
-    }
     setErrores(nuevosErrores)
     if (Object.keys(nuevosErrores).length > 0) return
 
@@ -71,14 +77,27 @@ function FormularioUsuario() {
     }
     delete usuarioListo.confirmarClave
 
-    if (esEdicion) {
-      // Si la contraseña queda vacía, se mantiene la que tenía
-      if (!usuarioListo.clave) delete usuarioListo.clave
-      actualizarUsuario(id, usuarioListo)
-    } else {
-      registrarUsuario(usuarioListo)
+    // Al editar, si la contraseña queda vacía MS-Usuarios mantiene la que tenía
+    setGuardando(true)
+    try {
+      if (esEdicion) {
+        await actualizarUsuario(id, usuarioListo)
+      } else {
+        await crearUsuario(usuarioListo)
+      }
+      navegar('/admin/usuarios')
+    } catch (error) {
+      const mensaje = mensajeDeError(error, 'No se pudo guardar el usuario.')
+      // 409: el correo o el RUN ya pertenecen a otra cuenta. Se muestra bajo ese campo.
+      if (error.response?.status === 409 && mensaje.includes('correo')) {
+        setErrores({ correo: 'Ya existe una cuenta con este correo.' })
+      } else if (error.response?.status === 409 && mensaje.includes('RUN')) {
+        setErrores({ run: 'Ya existe una cuenta con este RUN.' })
+      } else {
+        setErrorGuardar(mensaje)
+      }
+      setGuardando(false)
     }
-    navegar('/admin/usuarios')
   }
 
   return (
@@ -157,8 +176,12 @@ function FormularioUsuario() {
               </Col>
             </Row>
 
+            {errorGuardar && <Alert variant="danger">{errorGuardar}</Alert>}
+
             <div className="d-flex flex-wrap gap-2">
-              <Button type="submit" variant="primary">Guardar usuario</Button>
+              <Button type="submit" variant="primary" disabled={guardando}>
+                {guardando ? 'Guardando...' : 'Guardar usuario'}
+              </Button>
               <Button as={Link} to="/admin/usuarios" variant="outline-dark">Cancelar</Button>
             </div>
           </Form>
